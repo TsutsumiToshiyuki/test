@@ -1,0 +1,214 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Create for security group
+
+Metadata:
+  "AWS::CloudFormation::Interface":
+    ParameterGroups:
+      - Label:
+          default: "Security Group Configuration"
+        Parameters:
+          - SystemPrefix
+          - EnvPrefix
+          - CidrPrefix
+
+# ------------------------------------------------------------#
+# Input Parameters
+# ------------------------------------------------------------#
+Parameters:
+  SystemPrefix:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: SystemPrefix
+
+  EnvPrefix:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: EnvPrefix
+
+  CidrPrefix:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: CidrPrefix
+
+# ------------------------------------------------------------#
+#  Resources Parameters
+# ------------------------------------------------------------#
+Resources:
+  # ------------------------------------------------------------#
+  # Security Group
+  # ------------------------------------------------------------#
+  # ALB Security Group
+  ALBSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !ImportValue VPC
+      GroupName: !Sub ${SystemPrefix}-${EnvPrefix}-alb-sg
+      GroupDescription: ALB Security Group
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemPrefix}-${EnvPrefix}-alb-sg
+        - Key: System
+          Value: !Sub ${SystemPrefix}
+        - Key: Environment
+          Value: !Sub ${EnvPrefix}
+  
+  # Rule
+  ALBSGRuleForIngressFromInternet:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+        GroupId: !Ref ALBSG
+        Description: Ingress from Internet
+        IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+        CidrIp: 0.0.0.0/0
+
+  ALBSGRuleForEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+        GroupId: !Ref ALBSG
+        Description: Engress to WebApp
+        IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+        DestinationSecurityGroupId: !Ref WebAppInstanceSG
+
+  # WebApp Instance Security Group
+  WebAppInstanceSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !ImportValue VPC
+      GroupDescription: Web App Instance Security Group
+      GroupName: !Sub ${SystemPrefix}-${EnvPrefix}-web-sg
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemPrefix}-${EnvPrefix}-web-sg
+        - Key: System
+          Value: !Sub ${SystemPrefix}
+        - Key: Environment
+          Value: !Sub ${EnvPrefix}
+
+  # Rule
+  WebAppInstanceSGRuleForIngressFromALB:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+        GroupId: !Ref WebAppInstanceSG
+        Description: Ingress from ALB
+        IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+        SourceSecurityGroupId: !Ref ALBSG
+
+  WebAppInstanceSGRuleForEgressToDB:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+        GroupId: !Ref WebAppInstanceSG
+        Description: Egress to DB
+        IpProtocol: tcp
+        FromPort: 3306
+        ToPort: 3306
+        DestinationSecurityGroupId: !Ref DBSG
+
+  # Manage Security Group
+  AllInstanceSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !ImportValue VPC
+      GroupDescription: All Instance Security Group
+      GroupName: !Sub ${SystemPrefix}-${EnvPrefix}-all-instance-sg
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemPrefix}-${EnvPrefix}-all-instance-sg
+        - Key: System
+          Value: !Sub ${SystemPrefix}
+        - Key: Environment
+          Value: !Sub ${EnvPrefix}
+
+  # Rule
+  AllInstanceSGRuleForEgressTo443:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+        GroupId: !Ref AllInstanceSG
+        Description: for SSM,YUM,DNF
+        FromPort: 443
+        ToPort: 443
+        IpProtocol: tcp
+        CidrIp: 0.0.0.0/0
+  
+  AllInstanceSGRuleForEgressTo80:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+        GroupId: !Ref AllInstanceSG
+        Description: for YUM,DNF
+        IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+        CidrIp: 0.0.0.0/0
+
+  AllInstanceSGRuleForEgressTo53:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+        GroupId: !Ref AllInstanceSG
+        Description: for YUM,DNF
+        IpProtocol: udp
+        FromPort: 53
+        ToPort: 53
+        CidrIp: 0.0.0.0/0
+
+  # DB Security Group
+  DBSG:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      VpcId: !ImportValue VPC
+      GroupName: !Sub ${SystemPrefix}-${EnvPrefix}-db-sg
+      GroupDescription: DB Security Group
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemPrefix}-${EnvPrefix}-db-sg
+        - Key: System
+          Value: !Sub ${SystemPrefix}
+        - Key: Environment
+          Value: !Sub ${EnvPrefix}
+  # Rule
+  DBSGRuleForIngressFromWebApp:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+        GroupId: !Ref DBSG
+        Description: Ingress from Web
+        IpProtocol: tcp
+        FromPort: 3306
+        ToPort: 3306
+        SourceSecurityGroupId: !Ref WebAppInstanceSG
+
+  DBSGRuleForEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+        GroupId: !Ref DBSG
+        Description: Rule to delete default rules
+        IpProtocol: -1
+        CidrIp: 127.0.0.1/32
+
+# ------------------------------------------------------------#
+# Outputs
+# ------------------------------------------------------------#
+Outputs:
+  ALBSG:
+    Description: ALBSG ID
+    Value: !Ref ALBSG
+    Export:
+      Name: ALBSG
+
+  WebAppInstanceSG:
+    Description: WebAppInstanceSG ID
+    Value: !Ref WebAppInstanceSG
+    Export:
+      Name: WebAppInstanceSG
+  
+  AllInstanceSG:
+    Description: AllInstanceSG ID
+    Value: !Ref AllInstanceSG
+    Export:
+      Name: AllInstanceSG
+
+  DBSG:
+    Description: DBSG ID
+    Value: !Ref DBSG
+    Export:
+      Name: DBSG

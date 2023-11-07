@@ -1,0 +1,385 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "network resource"
+
+Metadata:
+  "AWS::CloudFormation::Interface":
+    ParameterGroups:
+      - Label:
+          default: "Network Configuration"
+        Parameters:
+          - VPCCIDR
+          - PublicSubnetACIDR
+          - PublicSubnetCCIDR
+          - ProtectedSubnetACIDR
+          - ProtectedSubnetCCIDR
+          - PrivateSubnetACIDR
+          - PrivateSubnetCCIDR
+    ParameterLabels:
+      VPCCIDR:
+        default: "VPC CIDR"
+      PublicSubnetACIDR:
+        default: "PublicSubnetA CIDR"
+      PublicSubnetCCIDR:
+        default: "PublicSubnetC CIDR"
+      ProtectedSubnetACIDR:
+        default: "ProtectedSubnetA CIDR"
+      ProtectedSubnetCCIDR:
+        default: "ProtectedSubnetC CIDR"
+      PrivateSubnetACIDR:
+        default: "PrivateSubnetA CIDR"
+      PrivateSubnetCCIDR:
+        default: "PrivateSubnetC CIDR"
+
+# ------------------------------------------------------------#
+# Input Parameters
+# ------------------------------------------------------------#
+Parameters:
+  VPCCIDR:
+    Type: String
+    Default: "10.0.0.0/16"
+
+  PublicSubnetACIDR:
+    Type: String
+    Default: "10.0.0.0/24"
+
+  PublicSubnetCCIDR:
+    Type: String
+    Default: "10.0.1.0/24"
+
+  ProtectedSubnetACIDR:
+    Type: String
+    Default: "10.0.3.0/24"
+
+  ProtectedSubnetCCIDR:
+    Type: String
+    Default: "10.0.4.0/24"
+
+  PrivateSubnetACIDR:
+    Type: String
+    Default: "10.0.6.0/24"
+
+  PrivateSubnetCCIDR:
+    Type: String
+    Default: "10.0.7.0/24"
+
+
+Resources:
+  # ------------------------------------------------------------#
+  #  VPC
+  # ------------------------------------------------------------#
+  # VPC Create
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VPCCIDR
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      InstanceTenancy: default
+      Tags:
+        - Key: Name
+          Value: training-dev-vpc-web
+        - Key: Project
+          Value: Training
+        - Key: Environment
+          Value: Dev
+
+  # InternetGateway Create
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: training-dev-igw-wordpress
+        - Key: Project
+          Value: Training
+        - Key: Environment
+          Value: Dev
+
+  # IGW Attach
+  InternetGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref VPC
+
+  # ------------------------------------------------------------#
+  #  Subnet
+  # ------------------------------------------------------------#
+  # Public SubnetA Create
+  PublicSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: ap-northeast-1a
+      CidrBlock: !Ref PublicSubnetACIDR
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: training-dev-subnet-public-a
+        - Key: Project
+          Value: Training
+        - Key: Environment
+          Value: Dev
+
+  # Public SubnetC Create
+  PublicSubnetC:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: ap-northeast-1c
+      CidrBlock: !Ref PublicSubnetCCIDR
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: training-dev-subnet-public-c
+        - Key: Project
+          Value: Training
+        - Key: Environment
+          Value: Dev
+
+  # Protected SubnetA Create
+  ProtectedSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: ap-northeast-1a
+      CidrBlock: !Ref ProtectedSubnetACIDR
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: training-dev-subnet-protected-a
+        - Key: Project
+          Value: Training
+        - Key: Environment
+          Value: Dev
+
+  # Protected SubnetC Create
+  ProtectedSubnetC:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: ap-northeast-1c
+      CidrBlock: !Ref ProtectedSubnetCCIDR
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: training-dev-subnet-protected-c
+        - Key: Project
+          Value: Training
+        - Key: Environment
+          Value: Dev
+
+  # Private SubnetA Create
+  PrivateSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: ap-northeast-1a
+      CidrBlock: !Ref PrivateSubnetACIDR
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: training-dev-subnet-private-a
+        - Key: Project
+          Value: Training
+        - Key: Environment
+          Value: Dev
+
+  # Private SubnetC Create
+  PrivateSubnetC:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: ap-northeast-1c
+      CidrBlock: !Ref PrivateSubnetCCIDR
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: training-dev-subnet-private-c
+        - Key: Project
+          Value: Training
+        - Key: Environment
+          Value: Dev
+
+  # ------------------------------------------------------------#
+  #  NAT Gateway
+  # ------------------------------------------------------------#
+  # NATGatewayA Create
+  NATGatewayA:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NATGatewayAEIP.AllocationId
+      SubnetId: !Ref PublicSubnetA
+      Tags:
+        - Key: Name
+          Value: training-dev-natgw-a
+        - Key: Project
+          Value: Training
+        - Key: Environment
+          Value: Dev
+
+  # NATGateway For EIP Create
+  NATGatewayAEIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: training-dev-eip-natgw
+        - Key: Project
+          Value: Training
+        - Key: Environment
+          Value: Dev
+
+  # ------------------------------------------------------------#
+  #  RouteTable
+  # ------------------------------------------------------------#
+  # Public RouteTable Create
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: training-dev-rt-public
+        - Key: Project
+          Value: Training
+        - Key: Environment
+          Value: Dev
+
+  # Private Web/App RouteTable Create
+  ProtectedRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: training-dev-rt-protected
+        - Key: Project
+          Value: Training
+        - Key: Environment
+          Value: Dev
+
+  # Private DB RouteTable Create
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: training-dev-rt-private
+        - Key: Project
+          Value: Training
+        - Key: Environment
+          Value: Dev
+
+  # ------------------------------------------------------------#
+  # Routing
+  # ------------------------------------------------------------#
+  # PublicRoute Create
+  PublicRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  # ProtectedRoute Create
+  ProtectedRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref ProtectedRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NATGatewayA
+
+#  # PrivateRoute Create
+#  PrivateRoute:
+#    Type: AWS::EC2::Route
+#    Properties:
+#      RouteTableId: !Ref PrivateRouteTable
+
+  # ------------------------------------------------------------#
+  # RouteTable Associate
+  # ------------------------------------------------------------#
+  # PublicRouteTable Associate SubnetA
+  PublicSubnetARouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetA
+      RouteTableId: !Ref PublicRouteTable
+
+  # PublicRouteTable Associate SubnetC
+  PublicSubnetCRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetC
+      RouteTableId: !Ref PublicRouteTable
+
+  # Private Web/App RouteTable Associate SubnetA
+  ProtectedSubnetARouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref ProtectedSubnetA
+      RouteTableId: !Ref ProtectedRouteTable
+
+  # Private Web/App RouteTable Associate SubnetC
+  ProtectedSubnetCRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref ProtectedSubnetC
+      RouteTableId: !Ref ProtectedRouteTable
+
+  # Private DB RouteTable Associate SubnetA
+  PrivateSubnetARouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetA
+      RouteTableId: !Ref PrivateRouteTable
+
+  # Private DB RouteTable Associate SubnetC
+  PrivateSubnetCRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetC
+      RouteTableId: !Ref PrivateRouteTable
+
+
+# ------------------------------------------------------------#
+# Outputs
+# ------------------------------------------------------------#
+Outputs:
+  VPC:
+    Description: VPC ID
+    Value: !Ref VPC
+    Export:
+      Name: VPC
+
+  PublicSubnetA:
+    Description: Public Subnet A ID
+    Value: !Ref PublicSubnetA
+    Export:
+      Name: PublicSubnetA
+
+  PublicSubnetC:
+    Description: Public Subnet C ID
+    Value: !Ref PublicSubnetC
+    Export:
+      Name: PublicSubnetC
+
+  ProtectedSubnetA:
+    Description: Protected Subnet C ID
+    Value: !Ref PublicSubnetC
+    Export:
+      Name: ProtectedSubnetA
+
+  ProtectedSubnetC:
+    Description: Protected Subnet C ID
+    Value: !Ref PublicSubnetC
+    Export:
+      Name: ProtectedSubnetC
+
+  PrivateSubnetA:
+    Description: Private Subnet C ID
+    Value: !Ref PublicSubnetC
+    Export:
+      Name: PrivateSubnetA
+
+  PrivateSubnetC:
+    Description: Private Subnet C ID
+    Value: !Ref PublicSubnetC
+    Export:
+      Name: PrivateSubnetC

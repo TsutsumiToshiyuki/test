@@ -1,0 +1,98 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Create for network resource"
+
+Metadata:
+  "AWS::CloudFormation::Interface":
+    ParameterGroups:
+      - Label:
+          default: "Network Configuration"
+        Parameters:
+          - VPCCIDR
+          - PublicSubnetACIDR
+          - PublicSubnetCCIDR
+          - ProtectedSubnetACIDR
+          - ProtectedSubnetCCIDR
+          - PrivateSubnetACIDR
+          - PrivateSubnetCCIDR
+    ParameterLabels:
+      VPCCIDR:
+        default: "VPC CIDR"
+      PublicSubnetACIDR:
+        default: "PublicSubnetA CIDR"
+      PublicSubnetCCIDR:
+        default: "PublicSubnetC CIDR"
+      ProtectedSubnetACIDR:
+        default: "ProtectedSubnetA CIDR"
+      ProtectedSubnetCCIDR:
+        default: "ProtectedSubnetC CIDR"
+      PrivateSubnetACIDR:
+        default: "PrivateSubnetA CIDR"
+      PrivateSubnetCCIDR:
+        default: "PrivateSubnetC CIDR"
+
+# ------------------------------------------------------------#
+# Input Parameters
+# ------------------------------------------------------------#
+Parameters:
+  SystemPrefix:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: SystemPrefix
+
+  EnvPrefix:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: EnvPrefix
+
+  CidrPrefix:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: CidrPrefix
+
+  VPCCIDR:
+    Type: String
+    Default: "1.0/16"
+
+  PublicSubnetACIDR:
+    Type: String
+    Default: "10.0.0.0/24"
+
+  PublicSubnetCCIDR:
+    Type: String
+    Default: "10.0.1.0/24"
+
+  ProtectedSubnetACIDR:
+    Type: String
+    Default: "10.0.3.0/24"
+
+  ProtectedSubnetCCIDR:
+    Type: String
+    Default: "10.0.4.0/24"
+
+  PrivateSubnetACIDR:
+    Type: String
+    Default: "10.0.6.0/24"
+
+  PrivateSubnetCCIDR:
+    Type: String
+    Default: "10.0.7.0/24"
+
+# ------------------------------------------------------------#
+#  Resources Parameters
+# ------------------------------------------------------------#
+Resources:
+  # ------------------------------------------------------------#
+  #  VPC
+  # ------------------------------------------------------------#
+  # VPC Create
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Sub ${CidrPrefix}${VPCCIDR}
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      InstanceTenancy: default
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemPrefix}-${EnvPrefix}-vpc
+        - Key: System
+          Value: !Sub ${SystemPrefix}
+        - Key: Environment
+          Value: !Sub ${EnvPrefix}

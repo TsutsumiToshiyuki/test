@@ -1,0 +1,141 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: "Create for Aurora Cluster"
+
+Metadata:
+  "AWS::CloudFormation::Interface":
+    ParameterGroups:
+      - Label:
+          default: "DB Configuration"
+        Parameters:
+          - SystemPrefix
+          - EnvPrefix
+
+# ------------------------------------------------------------#
+# Input Parameters
+# ------------------------------------------------------------#
+Parameters:
+  SystemPrefix:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: SystemPrefix
+
+  EnvPrefix:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: EnvPrefix
+
+# ------------------------------------------------------------#
+#  Resources Parameters
+# ------------------------------------------------------------#
+Resources:
+  AuroraDBCluster:
+    Type: AWS::RDS::DBCluster
+    Properties:
+      BackupRetentionPeriod: 7
+      DBSubnetGroupName: !Ref AuroraDBSubnetGroup
+      DBClusterParameterGroupName: !Ref AuroraDBClusterParameterGroup
+      DBClusterIdentifier: !Sub ${SystemPrefix}-${EnvPrefix}-DB-Cluster
+      DeletionProtection: false
+      Engine: aurora-mysql
+      EngineMode: provisioned
+      EngineVersion: 8.0.mysql_aurora.3.05.0
+      MasterUsername: !Sub '{{resolve:secretsmanager:${AuroraDBAdminAccount}:SecretString:username}}'
+      MasterUserPassword: !Sub '{{resolve:secretsmanager:${AuroraDBAdminAccount}:SecretString:password}}'
+      PreferredBackupWindow: 16:00-17:00
+      PreferredMaintenanceWindow: tue:18:00-tue:19:00
+      StorageEncrypted: true
+      VpcSecurityGroupIds:
+        - !ImportValue  DBSG
+
+  AuroraDBClusterParameterGroup:
+    Type: AWS::RDS::DBClusterParameterGroup
+    Properties:
+      Description: !Sub ${SystemPrefix}-${EnvPrefix}-DBClusterParameterGroup
+      Family: aurora-mysql8.0	
+      Parameters:
+        time_zone: Asia/Tokyo
+
+  AuroraDBInstance01:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      AutoMinorVersionUpgrade: false
+      AvailabilityZone: !Sub ${AWS::Region}a
+      DBClusterIdentifier: !Ref AuroraDBCluster
+      DBParameterGroupName: !Ref AuroraDBParameterGroup
+      DBInstanceClass: db.t3.medium
+      DBSubnetGroupName: !Ref AuroraDBSubnetGroup
+      DBInstanceIdentifier: !Sub ${SystemPrefix}-${EnvPrefix}-DB-instance01
+      Engine: aurora-mysql
+      EngineVersion: 8.0.mysql_aurora.3.05.0
+      EnablePerformanceInsights: false
+      MonitoringInterval: 0
+      PubliclyAccessible: false
+      PreferredMaintenanceWindow: tue:18:00-tue:19:00
+      PromotionTier: 1
+
+  AuroraDBInstance02:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      AutoMinorVersionUpgrade: false
+      AvailabilityZone: !Sub ${AWS::Region}c
+      DBClusterIdentifier: !Ref AuroraDBCluster
+      DBParameterGroupName: !Ref AuroraDBParameterGroup
+      DBInstanceClass: db.t3.medium
+      DBSubnetGroupName: !Ref AuroraDBSubnetGroup
+      DBInstanceIdentifier: !Sub ${SystemPrefix}-${EnvPrefix}-DB-instance02
+      Engine: aurora-mysql
+      EngineVersion: 8.0.mysql_aurora.3.05.0
+      EnablePerformanceInsights: false
+      MonitoringInterval: 0
+      PubliclyAccessible: false
+      PreferredMaintenanceWindow: tue:18:00-tue:19:00
+      PromotionTier: 1
+
+  AuroraDBInstance03:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      AutoMinorVersionUpgrade: false
+      AvailabilityZone: !Sub ${AWS::Region}d
+      DBClusterIdentifier: !Ref AuroraDBCluster
+      DBParameterGroupName: !Ref AuroraDBParameterGroup
+      DBInstanceClass: db.t3.medium
+      DBSubnetGroupName: !Ref AuroraDBSubnetGroup
+      DBInstanceIdentifier: !Sub ${SystemPrefix}-${EnvPrefix}-DB-instance03
+      Engine: aurora-mysql
+      EngineVersion: 8.0.mysql_aurora.3.05.0
+      EnablePerformanceInsights: false
+      MonitoringInterval: 0
+      PubliclyAccessible: false
+      PreferredMaintenanceWindow: tue:18:00-tue:19:00
+      PromotionTier: 1
+
+  AuroraDBParameterGroup:
+    Type: AWS::RDS::DBParameterGroup
+    Properties:
+      Description: !Sub ${SystemPrefix}-${EnvPrefix}-DBParameterGroup
+      Family: aurora-mysql8.0
+
+  AuroraDBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupName: !Sub ${SystemPrefix}-${EnvPrefix}-DBSubnetGroup
+      DBSubnetGroupDescription: '-'
+      SubnetIds:
+        - !ImportValue  PrivateSubnetA
+        - !ImportValue  PrivateSubnetC
+        - !ImportValue  PrivateSubnetD
+
+  AuroraDBAdminAccount:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub ${SystemPrefix}-${EnvPrefix}-DB-AdminAccount
+      GenerateSecretString:
+        SecretStringTemplate: '{"username":"admin"}'
+        GenerateStringKey: password
+        PasswordLength: 16
+        ExcludeCharacters: !Join [ '', [ ' ', '"', '#', '$', "'", '/', '@', '=', '\\', '`' ] ]
+
+  AuroraDBAdminAccountAttachment:
+    Type: AWS::SecretsManager::SecretTargetAttachment
+    Properties:
+      TargetType: AWS::RDS::DBCluster
+      TargetId: !Ref AuroraDBCluster
+      SecretId: !Ref AuroraDBAdminAccount

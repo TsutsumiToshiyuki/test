@@ -1,0 +1,500 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Create for network resource"
+
+Metadata:
+  "AWS::CloudFormation::Interface":
+    ParameterGroups:
+      - Label:
+          default: "Network Configuration"
+        Parameters:
+          - SystemPrefix
+          - EnvPrefix
+          - CidrPrefix
+          - VPCCIDR
+          - PublicSubnetACIDR
+          - PublicSubnetCCIDR
+          - PublicSubnetDCIDR
+          - ProtectedSubnetACIDR
+          - ProtectedSubnetCCIDR
+          - ProtectedSubnetDCIDR
+          - PrivateSubnetACIDR
+          - PrivateSubnetCCIDR
+          - PrivateSubnetDCIDR
+    ParameterLabels:
+      VPCCIDR:
+        default: "VPC CIDR info for 3,4 octet"
+      PublicSubnetACIDR:
+        default: "PublicSubnetA CIDR info for 3,4 octet"
+      PublicSubnetCCIDR:
+        default: "PublicSubnetC CIDR info for 3,4 octet"
+      PublicSubnetDCIDR:
+        default: "PublicSubnetD CIDR info for 3,4 octet"
+      ProtectedSubnetACIDR:
+        default: "ProtectedSubnetA CIDR info for 3,4 octet"
+      ProtectedSubnetCCIDR:
+        default: "ProtectedSubnetC CIDR info for 3,4 octet"
+      ProtectedSubnetDCIDR:
+        default: "ProtectedSubnetD CIDR info for 3,4 octet"
+      PrivateSubnetACIDR:
+        default: "PrivateSubnetA CIDR info for 3,4 octet"
+      PrivateSubnetCCIDR:
+        default: "PrivateSubnetC CIDR info for 3,4 octet"
+      PrivateSubnetDCIDR:
+        default: "PrivateSubnetD CIDR info for 3,4 octet"
+
+# ------------------------------------------------------------#
+# Input Parameters
+# ------------------------------------------------------------#
+Parameters:
+  SystemPrefix:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: SystemPrefix
+
+  EnvPrefix:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: EnvPrefix
+
+  CidrPrefix:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: CidrPrefix
+
+  VPCCIDR:
+    Type: String
+    Default: "0.0/16"
+
+  PublicSubnetACIDR:
+    Type: String
+    Default: "0.0/24"
+
+  PublicSubnetCCIDR:
+    Type: String
+    Default: "1.0/24"
+
+  PublicSubnetDCIDR:
+    Type: String
+    Default: "2.0/24"
+
+  ProtectedSubnetACIDR:
+    Type: String
+    Default: "3.0/24"
+
+  ProtectedSubnetCCIDR:
+    Type: String
+    Default: "4.0/24"
+
+  ProtectedSubnetDCIDR:
+    Type: String
+    Default: "5.0/24"
+
+  PrivateSubnetACIDR:
+    Type: String
+    Default: "6.0/24"
+
+  PrivateSubnetCCIDR:
+    Type: String
+    Default: "7.0/24"
+
+  PrivateSubnetDCIDR:
+    Type: String
+    Default: "8.0/24"
+
+# ------------------------------------------------------------#
+#  Resources Parameters
+# ------------------------------------------------------------#
+Resources:
+  # ------------------------------------------------------------#
+  #  VPC
+  # ------------------------------------------------------------#
+  # VPC Create
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Sub ${CidrPrefix}${VPCCIDR}
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      InstanceTenancy: default
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemPrefix}-${EnvPrefix}-vpc
+        - Key: System
+          Value: !Sub ${SystemPrefix}
+        - Key: Environment
+          Value: !Sub ${EnvPrefix}
+
+  # InternetGateway Create
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemPrefix}-${EnvPrefix}-igw
+        - Key: System
+          Value: !Sub ${SystemPrefix}
+        - Key: Environment
+          Value: !Sub ${EnvPrefix}
+
+  # IGW Attach
+  InternetGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref VPC
+
+  # ------------------------------------------------------------#
+  #  Subnet
+  # ------------------------------------------------------------#
+  # Public SubnetA Create
+  PublicSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Sub ${AWS::Region}a
+      CidrBlock: !Sub ${CidrPrefix}${PublicSubnetACIDR}
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemPrefix}-${EnvPrefix}-public-subnet-a
+        - Key: System
+          Value: !Sub ${SystemPrefix}
+        - Key: Environment
+          Value: !Sub ${EnvPrefix}
+
+  # Public SubnetC Create
+  PublicSubnetC:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Sub ${AWS::Region}c
+      CidrBlock: !Sub ${CidrPrefix}${PublicSubnetCCIDR}
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemPrefix}-${EnvPrefix}-public-subnet-c
+        - Key: System
+          Value: !Sub ${SystemPrefix}
+        - Key: Environment
+          Value: !Sub ${EnvPrefix}
+
+  # Public SubnetD Create
+  PublicSubnetD:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Sub ${AWS::Region}d
+      CidrBlock: !Sub ${CidrPrefix}${PublicSubnetDCIDR}
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemPrefix}-${EnvPrefix}-public-subnet-d
+        - Key: System
+          Value: !Sub ${SystemPrefix}
+        - Key: Environment
+          Value: !Sub ${EnvPrefix}
+
+  # Protected SubnetA Create
+  ProtectedSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Sub ${AWS::Region}a
+      CidrBlock: !Sub ${CidrPrefix}${ProtectedSubnetACIDR}
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemPrefix}-${EnvPrefix}-protected-subnet-a
+        - Key: System
+          Value: !Sub ${SystemPrefix}
+        - Key: Environment
+          Value: !Sub ${EnvPrefix}
+
+  # Protected SubnetC Create
+  ProtectedSubnetC:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Sub ${AWS::Region}c
+      CidrBlock: !Sub ${CidrPrefix}${ProtectedSubnetCCIDR}
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemPrefix}-${EnvPrefix}-protected-subnet-c
+        - Key: System
+          Value: !Sub ${SystemPrefix}
+        - Key: Environment
+          Value: !Sub ${EnvPrefix}
+  
+  # Protected SubnetD Create
+  ProtectedSubnetD:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Sub ${AWS::Region}d
+      CidrBlock: !Sub ${CidrPrefix}${ProtectedSubnetDCIDR}
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemPrefix}-${EnvPrefix}-protected-subnet-d
+        - Key: System
+          Value: !Sub ${SystemPrefix}
+        - Key: Environment
+          Value: !Sub ${EnvPrefix}
+
+  # Private SubnetA Create
+  PrivateSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Sub ${AWS::Region}a
+      CidrBlock: !Sub ${CidrPrefix}${PrivateSubnetACIDR}
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemPrefix}-${EnvPrefix}-private-subnet-a
+        - Key: System
+          Value: !Sub ${SystemPrefix}
+        - Key: Environment
+          Value: !Sub ${EnvPrefix}
+
+  # Private SubnetC Create
+  PrivateSubnetC:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Sub ${AWS::Region}c
+      CidrBlock: !Sub ${CidrPrefix}${PrivateSubnetCCIDR}
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemPrefix}-${EnvPrefix}-private-subnet-c
+        - Key: System
+          Value: !Sub ${SystemPrefix}
+        - Key: Environment
+          Value: !Sub ${EnvPrefix}
+
+  # Private SubnetD Create
+  PrivateSubnetD:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Sub ${AWS::Region}d
+      CidrBlock: !Sub ${CidrPrefix}${PrivateSubnetDCIDR}
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemPrefix}-${EnvPrefix}-private-subnet-d
+        - Key: System
+          Value: !Sub ${SystemPrefix}
+        - Key: Environment
+          Value: !Sub ${EnvPrefix}
+
+  # ------------------------------------------------------------#
+  #  NAT Gateway
+  # ------------------------------------------------------------#
+  # NATGatewayA Create
+  NATGatewayA:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NATGatewayAEIP.AllocationId
+      SubnetId: !Ref PublicSubnetA
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemPrefix}-${EnvPrefix}-natgw-a
+        - Key: System
+          Value: !Sub ${SystemPrefix}
+        - Key: Environment
+          Value: !Sub ${EnvPrefix}
+
+  # NATGateway For EIP Create
+  NATGatewayAEIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemPrefix}-${EnvPrefix}-eip-natgw
+        - Key: System
+          Value: !Sub ${SystemPrefix}
+        - Key: Environment
+          Value: !Sub ${EnvPrefix}
+
+  # ------------------------------------------------------------#
+  #  RouteTable
+  # ------------------------------------------------------------#
+  # Public RouteTable Create
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemPrefix}-${EnvPrefix}-public-rt
+        - Key: System
+          Value: !Sub ${SystemPrefix}
+        - Key: Environment
+          Value: !Sub ${EnvPrefix}
+
+  # Private Web/App RouteTable Create
+  ProtectedRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemPrefix}-${EnvPrefix}-procted-rt
+        - Key: System
+          Value: !Sub ${SystemPrefix}
+        - Key: Environment
+          Value: !Sub ${EnvPrefix}
+
+  # Private DB RouteTable Create
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemPrefix}-${EnvPrefix}-private-rt
+        - Key: System
+          Value: !Sub ${SystemPrefix}
+        - Key: Environment
+          Value: !Sub ${EnvPrefix}
+
+  # ------------------------------------------------------------#
+  # Routing
+  # ------------------------------------------------------------#
+  # PublicRoute Create
+  PublicRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  # ProtectedRoute Create
+  ProtectedRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref ProtectedRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NATGatewayA
+
+  # ------------------------------------------------------------#
+  # RouteTable Associate
+  # ------------------------------------------------------------#
+  # PublicRouteTable Associate SubnetA
+  PublicSubnetARouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetA
+      RouteTableId: !Ref PublicRouteTable
+
+  # PublicRouteTable Associate SubnetC
+  PublicSubnetCRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetC
+      RouteTableId: !Ref PublicRouteTable
+
+  # PublicRouteTable Associate SubnetD
+  PublicSubnetDRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetD
+      RouteTableId: !Ref PublicRouteTable
+
+  # Web/App RouteTable Associate SubnetA
+  ProtectedSubnetARouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref ProtectedSubnetA
+      RouteTableId: !Ref ProtectedRouteTable
+
+  # Web/App RouteTable Associate SubnetC
+  ProtectedSubnetCRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref ProtectedSubnetC
+      RouteTableId: !Ref ProtectedRouteTable
+
+  # Web/App RouteTable Associate SubnetD
+  ProtectedSubnetDRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref ProtectedSubnetD
+      RouteTableId: !Ref ProtectedRouteTable
+
+  # Private DB RouteTable Associate SubnetA
+  PrivateSubnetARouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetA
+      RouteTableId: !Ref PrivateRouteTable
+
+  # Private DB RouteTable Associate SubnetC
+  PrivateSubnetCRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetC
+      RouteTableId: !Ref PrivateRouteTable
+
+  # Private DB RouteTable Associate SubnetD
+  PrivateSubnetDRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetD
+      RouteTableId: !Ref PrivateRouteTable
+
+# ------------------------------------------------------------#
+# Outputs
+# ------------------------------------------------------------#
+Outputs:
+  VPC:
+    Description: VPC ID
+    Value: !Ref VPC
+    Export:
+      Name: VPC
+
+  PublicSubnetA:
+    Description: Public Subnet A ID
+    Value: !Ref PublicSubnetA
+    Export:
+      Name: PublicSubnetA
+
+  PublicSubnetC:
+    Description: Public Subnet C ID
+    Value: !Ref PublicSubnetC
+    Export:
+      Name: PublicSubnetC
+
+  PublicSubnetD:
+    Description: Public Subnet D ID
+    Value: !Ref PublicSubnetD
+    Export:
+      Name: PublicSubnetD
+
+  ProtectedSubnetA:
+    Description: Protected Subnet C ID
+    Value: !Ref ProtectedSubnetA
+    Export:
+      Name: ProtectedSubnetA
+
+  ProtectedSubnetC:
+    Description: Protected Subnet C ID
+    Value: !Ref ProtectedSubnetC
+    Export:
+      Name: ProtectedSubnetC
+
+  ProtectedSubnetD:
+    Description: Protected Subnet D ID
+    Value: !Ref ProtectedSubnetD
+    Export:
+      Name: ProtectedSubnetD
+
+  PrivateSubnetA:
+    Description: Private Subnet A ID
+    Value: !Ref PrivateSubnetA
+    Export:
+      Name: PrivateSubnetA
+
+  PrivateSubnetC:
+    Description: Private Subnet C ID
+    Value: !Ref PrivateSubnetC
+    Export:
+      Name: PrivateSubnetC
+
+  PrivateSubnetD:
+    Description: Private Subnet D ID
+    Value: !Ref PrivateSubnetD
+    Export:
+      Name: PrivateSubnetD

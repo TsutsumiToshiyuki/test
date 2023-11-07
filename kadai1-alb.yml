@@ -1,0 +1,103 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Create for Application Laod Balancer
+
+Metadata:
+  "AWS::CloudFormation::Interface":
+    ParameterGroups:
+      - Label:
+          default: "Security Group Configuration"
+        Parameters:
+          - SystemPrefix
+          - EnvPrefix
+          - CidrPrefix
+          - VPCCIDR
+
+# ------------------------------------------------------------#
+# Input Parameters
+# ------------------------------------------------------------#
+Parameters:
+  SystemPrefix:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: SystemPrefix
+
+  EnvPrefix:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: EnvPrefix
+
+  CidrPrefix:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: CidrPrefix
+
+# ------------------------------------------------------------#
+#  Resources Parameters
+# ------------------------------------------------------------#
+Resources:
+  # ------------------------------------------------------------#
+  #  Target Group
+  # ------------------------------------------------------------#
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      VpcId: !ImportValue VPC
+      Name: !Sub ${SystemPrefix}-${EnvPrefix}-public-tg
+      Protocol: HTTP
+      Port: 80
+      HealthCheckProtocol: HTTP
+      HealthCheckPath: /
+      HealthCheckPort: traffic-port
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 2
+      HealthCheckTimeoutSeconds: 5
+      HealthCheckIntervalSeconds: 10
+      Matcher:
+        HttpCode: 200
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemPrefix}-${EnvPrefix}-public-tg
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: 300
+        - Key: stickiness.enabled
+          Value: false
+      Targets:
+        - Id: !ImportValue WebAppInstance01
+        - Id: !ImportValue WebAppInstance02
+        - Id: !ImportValue WebAppInstance03
+
+  # ------------------------------------------------------------#
+  #  Internet ALB
+  # ------------------------------------------------------------#
+  InternetALB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Sub ${SystemPrefix}-${EnvPrefix}-public-alb
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemPrefix}-${EnvPrefix}-public-alb
+        - Key: System
+          Value: !Sub ${SystemPrefix}
+        - Key: Environment
+          Value: !Sub ${EnvPrefix}
+      Scheme: internet-facing
+      LoadBalancerAttributes:
+        - Key: deletion_protection.enabled
+          Value: false
+        - Key: idle_timeout.timeout_seconds
+          Value: 60
+      SecurityGroups:
+        - !ImportValue ALBSG
+      Subnets:
+        - !ImportValue PublicSubnetA
+        - !ImportValue PublicSubnetC
+        - !ImportValue PublicSubnetD
+
+  # Listener
+  ALBListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - TargetGroupArn: !Ref TargetGroup
+          Type: forward
+      LoadBalancerArn: !Ref InternetALB
+      Port: 80
+      Protocol: HTTP

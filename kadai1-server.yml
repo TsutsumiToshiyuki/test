@@ -1,0 +1,226 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Create for Web App Instances
+
+Metadata:
+  "AWS::CloudFormation::Interface":
+    ParameterGroups:
+      - Label:
+          default: "Server Configuration"
+        Parameters:
+          - SystemPrefix
+          - EnvPrefix
+          - CidrPrefix
+          - WebAppImageId
+          - KeyName
+    ParameterLabels:
+      WebAppImageId:
+        default: "web server Image Id"
+      KeyName:
+        default: "Server key pair name"
+
+# ------------------------------------------------------------#
+# Input Parameters
+# ------------------------------------------------------------#
+Parameters:
+  SystemPrefix:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: SystemPrefix
+
+  EnvPrefix:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: EnvPrefix
+
+  CidrPrefix:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: CidrPrefix
+
+  WebAppImageId:
+    Description: Amazon Linux 2023 Image Id
+    Type: String
+    Default: ami-098940df4d3292e9a
+
+  KeyName:
+    Description: The EC2 Key Pair to allow SSH access to the instances
+    Type: AWS::EC2::KeyPair::KeyName
+    ConstraintDescription: must be the name of an existing EC2 KeyPair.
+
+# ------------------------------------------------------------#
+#  Resources Parameters
+# ------------------------------------------------------------#
+Resources:
+  # ------------------------------------------------------------#
+  #  IAM Role for EC2
+  # ------------------------------------------------------------#
+  EC2IAMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${SystemPrefix}-${EnvPrefix}-webappinstance-role
+      Path: /
+      Description: Web Server IAM Role
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      Tags:
+        - Key: System
+          Value: !Sub ${SystemPrefix}
+        - Key: Environment
+          Value: !Sub ${EnvPrefix}
+
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: /
+      Roles:
+        - Ref: EC2IAMRole
+      InstanceProfileName: !Sub ${SystemPrefix}-${EnvPrefix}-webappinstance-role
+
+  # ------------------------------------------------------------#
+  #  EC2
+  # ------------------------------------------------------------#
+  # Web Server01
+  WebAppInstance01:
+    Type: AWS::EC2::Instance
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemPrefix}-${EnvPrefix}-web-01
+        - Key: System
+          Value: !Sub ${SystemPrefix}
+        - Key: Environment
+          Value: !Sub ${EnvPrefix}
+      ImageId: !Ref WebAppImageId
+      InstanceType: t2.micro
+      KeyName: !Ref KeyName
+      IamInstanceProfile: !Ref EC2InstanceProfile
+      DisableApiTermination: false
+      EbsOptimized: false
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 8
+            Encrypted: true
+      SecurityGroupIds:
+        - !ImportValue WebAppInstanceSG
+        - !ImportValue AllInstanceSG
+      SubnetId: !ImportValue ProtectedSubnetA
+      UserData:
+        Fn::Base64: !Sub |
+            #!/bin/bash
+            #httpd install
+            sudo dnf -y install httpd
+            sudo systemctl start httpd
+            sudo systemctl enable httpd
+            echo "kadai1 test page @ web01 !" | tee -a /var/www/html/index.html
+
+            #MySQL client install
+            sudo dnf -y localinstall https://dev.mysql.com/get/mysql80-community-release-el9-5.noarch.rpm
+            sudo dnf -y install mysql mysql-community-client
+
+  # Web Server02
+  WebAppInstance02:
+    Type: AWS::EC2::Instance
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemPrefix}-${EnvPrefix}-web-02
+        - Key: System
+          Value: !Sub ${SystemPrefix}
+        - Key: Environment
+          Value: !Sub ${EnvPrefix}
+      ImageId: !Ref WebAppImageId
+      InstanceType: t2.micro
+      KeyName: !Ref KeyName
+      IamInstanceProfile: !Ref EC2InstanceProfile
+      DisableApiTermination: false
+      EbsOptimized: false
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 8
+            Encrypted: true
+      SecurityGroupIds:
+        - !ImportValue WebAppInstanceSG
+        - !ImportValue AllInstanceSG
+      SubnetId: !ImportValue ProtectedSubnetC
+      UserData:
+        Fn::Base64: !Sub |
+            #!/bin/bash
+            #httpd install
+            sudo dnf -y install httpd
+            sudo systemctl start httpd
+            sudo systemctl enable httpd
+            echo "kadai1 test page @ web02 !" | tee -a /var/www/html/index.html
+
+            #MySQL client install
+            sudo dnf -y localinstall https://dev.mysql.com/get/mysql80-community-release-el9-5.noarch.rpm
+            sudo dnf -y install mysql mysql-community-client
+
+  # Web Server03
+  WebAppInstance03:
+    Type: AWS::EC2::Instance
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub ${SystemPrefix}-${EnvPrefix}-web-03
+        - Key: System
+          Value: !Sub ${SystemPrefix}
+        - Key: Environment
+          Value: !Sub ${EnvPrefix}
+      ImageId: !Ref WebAppImageId
+      InstanceType: t2.micro
+      KeyName: !Ref KeyName
+      IamInstanceProfile: !Ref EC2InstanceProfile
+      DisableApiTermination: false
+      EbsOptimized: false
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 8
+            Encrypted: true
+      SecurityGroupIds:
+        - !ImportValue WebAppInstanceSG
+        - !ImportValue AllInstanceSG
+      SubnetId: !ImportValue ProtectedSubnetD
+      UserData:
+        Fn::Base64: !Sub |
+            #!/bin/bash
+            #httpd install
+            sudo dnf -y install httpd
+            sudo systemctl start httpd
+            sudo systemctl enable httpd
+            echo "kadai1 test page @ web03 !" | tee -a /var/www/html/index.html
+
+            #MySQL client install
+            sudo dnf -y localinstall https://dev.mysql.com/get/mysql80-community-release-el9-5.noarch.rpm
+            sudo dnf -y install mysql mysql-community-client
+
+# ------------------------------------------------------------#
+# Outputs
+# ------------------------------------------------------------#
+Outputs:
+  WebAppInstance01:
+    Description: WebAppInstance01 ID
+    Value: !Ref WebAppInstance01
+    Export:
+      Name: WebAppInstance01
+
+  WebAppInstance02:
+    Description: WebAppInstance02 ID
+    Value: !Ref WebAppInstance02
+    Export:
+      Name: WebAppInstance02
+
+  WebAppInstance03:
+    Description: WebAppInstance03 ID
+    Value: !Ref WebAppInstance03
+    Export:
+      Name: WebAppInstance03

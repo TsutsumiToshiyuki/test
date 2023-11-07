@@ -1,0 +1,36 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Create parameter for Environment Prefix
+
+# ------------------------------------------------------------#
+# Input Parameters
+# ------------------------------------------------------------#
+Parameters:
+  EnvPrefix:
+    Type: String
+    Default: prod
+    AllowedValues:
+      - dev
+      - stg
+      - prod
+
+# ------------------------------------------------------------#
+#  Resources Parameters
+# ------------------------------------------------------------#
+Resources:
+  EnvPrefixParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: EnvPrefixParameter
+      Description: Environment Prefix
+      Type: String
+      Value: !Ref EnvPrefix
+
+# ------------------------------------------------------------#
+# Outputs
+# ------------------------------------------------------------#
+Outputs:
+  EnvPrefixParameter:
+    Description: Environment Prefix
+    Value: !Ref EnvPrefixParameter
+    Export:
+      Name: EnvPrefixParameter

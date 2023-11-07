@@ -1,0 +1,89 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Create parameter for Prefix
+
+Metadata:
+  "AWS::CloudFormation::Interface":
+    ParameterGroups:
+      - Label:
+          default: "Create Parameter for Prefix"
+        Parameters:
+          - SystemPrefixParameter
+          - EnvPrefixParameter
+          - CidrPrefixParameter
+    ParameterLabels:
+      SystemPrefixParameter:
+        default: "System Prefix"
+      EnvPrefixParameter:
+        default: "Environment Prefix"
+      CidrPrefixParameter:
+        default: "prefix up to the second octet"
+
+# ------------------------------------------------------------#
+# Input Parameters
+# ------------------------------------------------------------#
+Parameters:
+  SystemPrefixParameter:
+    Type: String
+    Default: kadai1
+
+  EnvPrefixParameter:
+    Type: String
+    Default: prod
+    AllowedValues:
+      - dev
+      - stg
+      - prod
+
+  CidrPrefixParameter:
+    Type: String
+    Default: "10.0."
+
+# ------------------------------------------------------------#
+#  Resources Parameters
+# ------------------------------------------------------------#
+Resources:
+  SystemPrefix:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: SystemPrefix
+      Description: System Prefix
+      Type: String
+      Value: !Ref SystemPrefixParameter
+
+  EnvPrefix:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: EnvPrefix
+      Description: Environment Prefix
+      Type: String
+      Value: !Ref EnvPrefixParameter
+
+  CidrPrefix:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: CidrPrefix
+      Description: Cidr Prefix
+      Type: String
+      Value: !Ref CidrPrefixParameter
+
+# ------------------------------------------------------------#
+# Outputs
+# ------------------------------------------------------------#
+Outputs:
+  SystemPrefix:
+    Description: System Prefix
+    Value: !Ref SystemPrefix
+    Export:
+      Name: SystemPrefix
+
+  EnvPrefix:
+    Description: Environment Prefix
+    Value: !Ref EnvPrefix
+    Export:
+      Name: EnvPrefix
+
+  CidrPrefix:
+    Description: Cidr Prefix
+    Value: !Ref CidrPrefix
+    Export:
+      Name: CidrPrefix

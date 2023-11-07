@@ -1,0 +1,32 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Create parameter for Cidr Prefix
+
+# ------------------------------------------------------------#
+# Input Parameters
+# ------------------------------------------------------------#
+Parameters:
+  CidrPrefix:
+    Type: String
+    Default: "10.0."
+
+# ------------------------------------------------------------#
+#  Resources Parameters
+# ------------------------------------------------------------#
+Resources:
+  CidrPrefixParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: CidrPrefixParameter
+      Description: Cidr Prefix
+      Type: String
+      Value: !Ref CidrPrefix
+
+# ------------------------------------------------------------#
+# Outputs
+# ------------------------------------------------------------#
+Outputs:
+  CidrPrefixParameter:
+    Description: Cidr Prefix
+    Value: !Ref CidrPrefixParameter
+    Export:
+      Name: CidrPrefixParameter
